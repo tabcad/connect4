@@ -1,20 +1,24 @@
-using _.Models;
+using ConnectFour.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
-public class AppDatabase : DbContext
+public class AppDatabase : IdentityDbContext<IdentityUser>
 {
   public AppDatabase(DbContextOptions<AppDatabase> options)
     : base(options)
   {
   }
-  public virtual DbSet<User> Users { get; set; }
+  public virtual DbSet<Player> Players { get; set; }
   public virtual DbSet<Move> Moves { get; set; }
   public virtual DbSet<Game> Games { get; set; }
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
-    modelBuilder.Entity<User>(e => 
+    base.OnModelCreating(modelBuilder);
+    
+    modelBuilder.Entity<Player>(e => 
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.Username).IsRequired();
@@ -34,19 +38,19 @@ public class AppDatabase : DbContext
         .HasColumnType("TEXT"); // sqlite only supports text
       
       //fk to users
-      e.HasOne<User>().WithMany()
+      e.HasOne<Player>().WithMany()
         .HasForeignKey(x => x.PlayerOne)
         .OnDelete(DeleteBehavior.Restrict);
 
-      e.HasOne<User>().WithMany()
+      e.HasOne<Player>().WithMany()
         .HasForeignKey(x => x.PlayerTwo)
         .OnDelete(DeleteBehavior.Restrict);
 
-      e.HasOne<User>().WithMany()
+      e.HasOne<Player>().WithMany()
         .HasForeignKey(x => x.CurrentTurn)
         .OnDelete(DeleteBehavior.Restrict);
 
-      e.HasOne<User>().WithMany()
+      e.HasOne<Player>().WithMany()
         .HasForeignKey(x => x.Winner)
         .OnDelete(DeleteBehavior.Restrict);
 
@@ -57,8 +61,8 @@ public class AppDatabase : DbContext
     {
       e.HasKey(x => x.MoveId);
 
-      e.HasOne<User>().WithMany()
-        .HasForeignKey(x => x.Player)
+      e.HasOne<Player>().WithMany()
+        .HasForeignKey(x => x.PlayerId)
         .OnDelete(DeleteBehavior.Restrict);
 
       e.HasOne<Game>().WithMany()
