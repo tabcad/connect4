@@ -6,6 +6,7 @@ import Nav from "./components/Nav";
 import Homepage from "./pages/Homepage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Game from "./pages/Game";
 
 const router = createBrowserRouter([
   {
@@ -15,6 +16,7 @@ const router = createBrowserRouter([
       { path: "/", element: <Homepage /> },
       { path: "/login", element: <Login /> },
       { path: "/signup", element: <Signup /> },
+      { path: "/connect4", element: <Game /> },
     ],
   },
 ]);
