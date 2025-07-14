@@ -1,7 +1,7 @@
 namespace ConnectFour.Contracts;
 
-public class NewGameRequest
+public class JoinRoomRequest
 {
-  public required Guid PlayerOne { get; set; }
   public required Guid PlayerTwo { get; set; }
+  public required Guid RoomId { get; set; }
 }

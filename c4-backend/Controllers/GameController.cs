@@ -1,6 +1,5 @@
 using ConnectFour.Contracts;
 using ConnectFour.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ConnectFour.Controllers;
@@ -20,50 +19,6 @@ public class GameController : ControllerBase
   }
 
   /// <summary>
-  /// Creates a new game for 2 players
-  /// </summary>
-  /// <param name="data"></param>
-  /// <returns></returns>
-  [HttpPost]
-  public async Task<IActionResult> CreateNewGame([FromBody] NewGameRequest data)
-  {
-    var newGame = await service.CreateNewGameAsync(data.PlayerOne, data.PlayerTwo);
-
-    return Ok(new GameResponse
-    {
-      GameId = newGame.GameId,
-      CurrentTurn = newGame.CurrentTurn,
-      Board = newGame.Board
-    });
-  }
-
-  [HttpGet("{id:Guid}")]
-  public async Task<IActionResult> GetGameById([FromRoute] Guid id)
-  {
-    var game = await service.GetGameByIdAsync(id);
-
-    return Ok(new GameResponse
-    {
-      GameId = game.GameId,
-      CurrentTurn = game.CurrentTurn,
-      Board = game.Board
-    });
-  }
-
-  /// <summary>
-  /// Returns list of all games created
-  /// </summary>
-  /// <returns></returns>
-  [HttpGet]
-  [ProducesResponseType(typeof(List<AllGamesResponse>), StatusCodes.Status200OK)]
-  public async Task<IActionResult> GetAllPlayers()
-  {
-    var list = await service.ListAllGamesAsync();
-
-    return Ok(list);
-  }
-
-  /// <summary>
   /// Places a piece based on player's turn
   /// </summary>
   /// <param name="data"></param>
@@ -72,6 +27,13 @@ public class GameController : ControllerBase
   public async Task<IActionResult> GameTurn([FromBody] PlayersMoveContract data)
   {
     var response = await service.GameTurnAsync(data.PlayerId, data.GameId, data.Col);
+    return Ok(response);
+  }
+
+  [HttpPost("bot/{gameId:Guid}")]
+  public async Task<IActionResult> BotTurn([FromRoute] Guid gameId)
+  {
+    var response = await service.BotTurnAsync(gameId);
     return Ok(response);
   }
 

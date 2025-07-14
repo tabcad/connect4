@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ConnectFour.Migrations
 {
     [DbContext(typeof(AppDatabase))]
-    [Migration("20250516002638_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250620051613_UpdateTables")]
+    partial class UpdateTables
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace ConnectFour.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("BoardState")
+                    b.Property<string>("Board")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -35,7 +35,7 @@ namespace ConnectFour.Migrations
                     b.Property<Guid>("PlayerOne")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("PlayerTwo")
+                    b.Property<Guid?>("PlayerTwo")
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("Winner")
@@ -100,7 +100,41 @@ namespace ConnectFour.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Username")
+                        .IsUnique();
+
                     b.ToTable("Players");
+                });
+
+            modelBuilder.Entity("ConnectFour.Models.Room", b =>
+                {
+                    b.Property<Guid>("RoomId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedOnUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("GameId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("InviteLink")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("PlayerOne")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PlayerTwo")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("RoomId");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("Rooms");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -312,8 +346,7 @@ namespace ConnectFour.Migrations
                     b.HasOne("ConnectFour.Models.Player", null)
                         .WithMany()
                         .HasForeignKey("PlayerTwo")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("ConnectFour.Models.Player", null)
                         .WithMany()
@@ -334,6 +367,17 @@ namespace ConnectFour.Migrations
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ConnectFour.Models.Room", b =>
+                {
+                    b.HasOne("ConnectFour.Models.Game", "Game")
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

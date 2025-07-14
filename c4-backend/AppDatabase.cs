@@ -10,14 +10,65 @@ public class AppDatabase : IdentityDbContext<IdentityUser>
     : base(options)
   {
   }
+  public virtual DbSet<Room> Rooms { get; set; }
+  public virtual DbSet<Game> Games { get; set; }
   public virtual DbSet<Player> Players { get; set; }
   public virtual DbSet<Move> Moves { get; set; }
-  public virtual DbSet<Game> Games { get; set; }
-  public virtual DbSet<Room> Rooms { get; set; }
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
     base.OnModelCreating(modelBuilder);
+
+    modelBuilder.Entity<Room>(e =>
+    {
+      e.HasKey(x => x.RoomId);
+
+      e.Property(x => x.RoomId).IsRequired();
+      e.Property(x => x.InviteLink);
+      e.Property(x => x.GameId).IsRequired();
+      e.Property(x => x.IsActive).IsRequired();
+      e.Property(x => x.CreatedOnUtc).IsRequired();
+
+      e.HasOne(x => x.Game)
+        .WithMany()
+        .HasForeignKey(x => x.GameId)
+        .OnDelete(DeleteBehavior.Cascade);
+    });
+
+    modelBuilder.Entity<Game>(e =>
+    {
+      e.HasKey(x => x.GameId);
+      e.Property(x => x.IsSinglePlayer).IsRequired();
+      e.Property(x => x.Board)
+        .HasConversion(
+          v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+          v => JsonSerializer.Deserialize<string?[][]>(v, (JsonSerializerOptions?)null)!
+        )
+        .HasColumnType("TEXT");
+
+      e.HasOne(x => x.PlayerOne)
+        .WithMany()
+        .HasForeignKey(x => x.PlayerOneId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+      e.HasOne(x => x.PlayerTwo)
+        .WithMany()
+        .HasForeignKey(x => x.PlayerTwoId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+      e.HasOne(g => g.CurrentTurn)
+        .WithMany()
+        .HasForeignKey(g => g.CurrentTurnId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+      e.HasOne(g => g.Winner)
+        .WithMany()
+        .HasForeignKey(g => g.WinnerId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+
+      e.HasMany<Move>().WithOne().HasForeignKey(y => y.GameId);
+    });
 
     modelBuilder.Entity<Player>(e =>
     {
@@ -27,37 +78,6 @@ public class AppDatabase : IdentityDbContext<IdentityUser>
       e.Property(x => x.Losses).IsRequired().HasDefaultValue(0);
 
       e.HasIndex(e => e.Username).IsUnique();
-    });
-
-    modelBuilder.Entity<Game>(e =>
-    {
-      e.HasKey(x => x.GameId);
-
-      e.Property(x => x.Board)
-        .HasConversion(
-          v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-          v => JsonSerializer.Deserialize<string?[][]>(v, (JsonSerializerOptions?)null)!
-        )
-        .HasColumnType("TEXT");
-
-      //fk to users
-      e.HasOne<Player>().WithMany()
-        .HasForeignKey(x => x.PlayerOne)
-        .OnDelete(DeleteBehavior.Restrict);
-
-      e.HasOne<Player>().WithMany()
-        .HasForeignKey(x => x.PlayerTwo)
-        .OnDelete(DeleteBehavior.Restrict);
-
-      e.HasOne<Player>().WithMany()
-        .HasForeignKey(x => x.CurrentTurn)
-        .OnDelete(DeleteBehavior.Restrict);
-
-      e.HasOne<Player>().WithMany()
-        .HasForeignKey(x => x.Winner)
-        .OnDelete(DeleteBehavior.Restrict);
-
-      e.HasMany<Move>().WithOne().HasForeignKey(y => y.GameId);
     });
 
     modelBuilder.Entity<Move>(e =>
@@ -71,20 +91,6 @@ public class AppDatabase : IdentityDbContext<IdentityUser>
       e.HasOne<Game>().WithMany()
         .HasForeignKey(x => x.GameId)
         .OnDelete(DeleteBehavior.Cascade);
-    });
-
-    modelBuilder.Entity<Room>(e =>
-    {
-      e.HasKey(x => x.RoomId);
-      e.Property(x => x.RoomId).IsRequired().ValueGeneratedOnAdd();
-
-      e.Property(x => x.PlayerOne).IsRequired();
-      e.Property(x => x.PlayerTwo).IsRequired();
-      e.Property(x => x.IsActive).IsRequired();
-      e.Property(x => x.CreatedOnUtc).IsRequired();
-      e.Property(x => x.CurrentTurn).IsRequired();
-      e.Property(x => x.GameId);
-
     });
   }
 }

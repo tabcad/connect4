@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Routing.Constraints;
-
 namespace ConnectFour.Contracts;
 
 public class PlayersMoveContract

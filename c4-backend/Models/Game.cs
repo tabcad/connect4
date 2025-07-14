@@ -1,23 +1,32 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace ConnectFour.Models;
 
 public class Game
 {
   public required Guid GameId { get; set; }
-  public required Guid PlayerOne { get; set; }
-  public required Guid PlayerTwo { get; set; }
-  public required Guid CurrentTurn { get; set; }
-  public Guid? Winner { get; set; }
+  public required Guid PlayerOneId { get; set; }
+  public Guid? PlayerTwoId { get; set; }
+  public required Guid CurrentTurnId { get; set; }
+  public Guid? WinnerId { get; set; }
+  public required bool IsSinglePlayer { get; set; }
   public string?[][] Board { get; set; } = CreateEmptyBoard();
 
+  // navigation
+  public Player PlayerOne { get; set; } = default!;
+  public Player? PlayerTwo { get; set; }
+  public Player CurrentTurn { get; set; } = default!;
+  public Player? Winner { get; set; }
+
   //game logic
-  [NotMapped]
-  public string?[,] GameLogicBoard
-  {
-    get => ConvertTo2D(Board); //get the board from the db
-    set => Board = ConvertToJagged(value); //convert to jagged array for implementing win logic
-  }
+  // [NotMapped]
+  // [JsonIgnore]
+  // public string?[,] GameLogicBoard
+  // {
+  //   get => ConvertTo2D(Board); //get the board from the db
+  //   set => Board = ConvertToJagged(value); //convert to jagged array for implementing win logic
+  // }
 
   public const int Rows = 6;
   public const int Columns = 7;
@@ -41,23 +50,23 @@ public class Game
         grid[i, m] = jagged[i][m];
     return grid;
   }
-
-  public static string?[][] ConvertToJagged(string?[,] array)
-  {
-    int rows = array.GetLength(0);
-    int cols = array.GetLength(1);
-    var jagged = new string?[rows][];
-    for (int i = 0; i < rows; i++)
-    {
-      jagged[i] = new string?[cols];
-      for (int m = 0; m < cols; m++)
-      {
-        jagged[i][m] = array[i, m];
-      }
-    }
-    return jagged;
-  }
 }
+//   public static string?[][] ConvertToJagged(string?[,] array)
+//   {
+//     int rows = array.GetLength(0);
+//     int cols = array.GetLength(1);
+//     var jagged = new string?[rows][];
+//     for (int i = 0; i < rows; i++)
+//     {
+//       jagged[i] = new string?[cols];
+//       for (int m = 0; m < cols; m++)
+//       {
+//         jagged[i][m] = array[i, m];
+//       }
+//     }
+//     return jagged;
+//   }
+// }
 
 // multidimensional arrays aka 2D arrays, [,], are easier for working out win logic but they aren't directly
 // serializable by ef core via json

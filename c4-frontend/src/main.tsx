@@ -1,27 +1,33 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { Login } from "./User/Login";
-import { Signup } from "./User/Signup";
-import ConnectFour from "./Game/ConnectFour";
-import { Nav } from "./Components/Nav";
 import { Provider } from "react-redux";
-import { store } from "./Redux/store";
-import { Home } from "./Home";
-import { StatsBoard } from "./User/StatsBoard";
-import { ReduxCounter } from "./study-redux/ReduxCounter";
+import { PersistGate } from "redux-persist/integration/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { persistor, store } from "./Store/store";
+import "./index.css";
+import { Nav } from "./Components/Nav";
+import { SinglePlayerRoom } from "./Room/SinglePlayerRoom";
+import { UserForm } from "./Components/UserForm";
+import { UsersRooms } from "./Room/UsersRooms";
+import { Leaderboard } from "./Pages/Leaderboard";
+import { Welcome } from "./Pages/Welcome";
+import { NewRoom } from "./Room/NewRoom";
+
+const queryClient = new QueryClient();
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Nav />,
     children: [
-      { path: "/", element: <Home /> },
-      { path: "/login", element: <Login /> },
-      { path: "/signup", element: <Signup /> },
-      { path: "/stats", element: <StatsBoard /> },
-      { path: "/game/:id", element: <ConnectFour /> },
-      { path: "/redux", element: <ReduxCounter /> },
+      { path: "/", element: <Welcome /> },
+      { path: "/login", element: <UserForm /> },
+      { path: "/create", element: <NewRoom /> },
+      { path: "/room/:id", element: <SinglePlayerRoom /> },
+      // { path: "/room/:id", element: <TwoPlayerRoom /> },
+      { path: "/rooms", element: <UsersRooms /> },
+      { path: "/stats", element: <Leaderboard /> },
     ],
   },
 ]);
@@ -32,7 +38,11 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <Provider store={store}>
-      <RouterProvider router={router} />
+      <PersistGate loading={null} persistor={persistor}>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </PersistGate>
     </Provider>
   </React.StrictMode>
 );

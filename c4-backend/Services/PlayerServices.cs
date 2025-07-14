@@ -133,4 +133,19 @@ public class PlayerServices
 
     return new JwtSecurityTokenHandler().WriteToken(token);
   }
+
+  internal async Task<List<RoomListResponse>> ListUsersRoomsAsync(Guid playerId)
+  {
+    var gameIds = await db.Games
+      .Where(x => x.PlayerOneId == playerId || x.PlayerTwoId == playerId)
+      .Select(x => x.GameId)
+      .ToListAsync();
+
+    var rooms = await db.Rooms
+      .Where(x => gameIds.Contains(x.GameId))
+      .Select(x => new RoomListResponse { Id = x.RoomId })
+      .ToListAsync();
+
+    return rooms;
+  }
 }

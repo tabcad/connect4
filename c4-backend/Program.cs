@@ -1,3 +1,4 @@
+using System.Net.WebSockets;
 using System.Reflection;
 using System.Text;
 using ConnectFour.Middleware;
@@ -12,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddScoped<PlayerServices>();
 builder.Services.AddScoped<GameServices>();
+builder.Services.AddScoped<RoomServices>();
 builder.Services.AddDbContext<AppDatabase>(opt => 
     opt.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -63,6 +65,23 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// ========================================================================
+app.UseWebSockets();
+
+app.Map("w/s", async context =>
+{
+    if (context.WebSockets.IsWebSocketRequest)
+    {
+        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+        await Echo(context, webSocket);
+    }
+    else
+    {
+        context.Response.StatusCode = 400;
+    }
+});
+// ========================================================================
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -89,3 +108,21 @@ if (args.Contains("--migrate"))
 }
 
 app.Run();
+
+
+// ========================================================================
+// basic echo handler, this is where i'll add my own stuff for send room invite etc..
+static async Task Echo(HttpContext context, WebSocket webSocket)
+{
+    var buffer = new byte[1024 * 4];
+    var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+    while (!result.CloseStatus.HasValue)
+    {
+        await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, result.Count), result.MessageType, result.EndOfMessage, CancellationToken.None);
+        result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+    }
+
+    await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+}
+// ========================================================================
