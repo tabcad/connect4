@@ -13,3 +13,5 @@ obj/
 
 # VS Code
 .vscode/
+
+*.db
