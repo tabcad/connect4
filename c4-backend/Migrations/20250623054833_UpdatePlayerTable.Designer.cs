@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ConnectFour.Migrations
 {
     [DbContext(typeof(AppDatabase))]
-    [Migration("20250523142242_AddUniqueIndexToPlayerUsername")]
-    partial class AddUniqueIndexToPlayerUsername
+    [Migration("20250623054833_UpdatePlayerTable")]
+    partial class UpdatePlayerTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,31 +25,34 @@ namespace ConnectFour.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("CurrentTurn")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("GameBoard")
+                    b.Property<string>("Board")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("PlayerOne")
+                    b.Property<Guid>("CurrentTurnId")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("PlayerTwo")
+                    b.Property<bool>("IsSinglePlayer")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("PlayerOneId")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("Winner")
+                    b.Property<Guid?>("PlayerTwoId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("WinnerId")
                         .HasColumnType("TEXT");
 
                     b.HasKey("GameId");
 
-                    b.HasIndex("CurrentTurn");
+                    b.HasIndex("CurrentTurnId");
 
-                    b.HasIndex("PlayerOne");
+                    b.HasIndex("PlayerOneId");
 
-                    b.HasIndex("PlayerTwo");
+                    b.HasIndex("PlayerTwoId");
 
-                    b.HasIndex("Winner");
+                    b.HasIndex("WinnerId");
 
                     b.ToTable("Games");
                 });
@@ -104,6 +107,31 @@ namespace ConnectFour.Migrations
                         .IsUnique();
 
                     b.ToTable("Players");
+                });
+
+            modelBuilder.Entity("ConnectFour.Models.Room", b =>
+                {
+                    b.Property<Guid>("RoomId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedOnUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("GameId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("InviteLink")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("RoomId");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("Rooms");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -300,28 +328,35 @@ namespace ConnectFour.Migrations
 
             modelBuilder.Entity("ConnectFour.Models.Game", b =>
                 {
-                    b.HasOne("ConnectFour.Models.Player", null)
+                    b.HasOne("ConnectFour.Models.Player", "CurrentTurn")
                         .WithMany()
-                        .HasForeignKey("CurrentTurn")
+                        .HasForeignKey("CurrentTurnId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ConnectFour.Models.Player", null)
+                    b.HasOne("ConnectFour.Models.Player", "PlayerOne")
                         .WithMany()
-                        .HasForeignKey("PlayerOne")
+                        .HasForeignKey("PlayerOneId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ConnectFour.Models.Player", null)
+                    b.HasOne("ConnectFour.Models.Player", "PlayerTwo")
                         .WithMany()
-                        .HasForeignKey("PlayerTwo")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ConnectFour.Models.Player", null)
-                        .WithMany()
-                        .HasForeignKey("Winner")
+                        .HasForeignKey("PlayerTwoId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ConnectFour.Models.Player", "Winner")
+                        .WithMany()
+                        .HasForeignKey("WinnerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CurrentTurn");
+
+                    b.Navigation("PlayerOne");
+
+                    b.Navigation("PlayerTwo");
+
+                    b.Navigation("Winner");
                 });
 
             modelBuilder.Entity("ConnectFour.Models.Move", b =>
@@ -337,6 +372,17 @@ namespace ConnectFour.Migrations
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ConnectFour.Models.Room", b =>
+                {
+                    b.HasOne("ConnectFour.Models.Game", "Game")
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

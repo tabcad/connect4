@@ -5,24 +5,25 @@
 namespace ConnectFour.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateGameModel : Migration
+    public partial class UpdateGameTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.RenameColumn(
-                name: "BoardState",
+            migrationBuilder.AddColumn<bool>(
+                name: "IsSinglePlayer",
                 table: "Games",
-                newName: "GameBoard");
+                type: "INTEGER",
+                nullable: false,
+                defaultValue: false);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.RenameColumn(
-                name: "GameBoard",
-                table: "Games",
-                newName: "BoardState");
+            migrationBuilder.DropColumn(
+                name: "IsSinglePlayer",
+                table: "Games");
         }
     }
 }

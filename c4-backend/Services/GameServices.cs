@@ -20,39 +20,49 @@ public class GameServices
     return board.Select(row => row.ToArray()).ToArray();
   }
 
-  internal async Task<Game> CreateNewGameAsync(Guid playerOne, Guid playerTwo)
+  internal async Task<Game> CreateNewGameAsync(Guid playerOne, Guid? playerTwo, bool isSinglePlayer)
   {
     var game = new Game
     {
       GameId = Guid.NewGuid(),
-      PlayerOne = playerOne,
-      PlayerTwo = playerTwo,
-      CurrentTurn = playerOne,
-      Winner = null,
+      PlayerOneId = playerOne,
+      PlayerTwoId = playerTwo,
+      IsSinglePlayer = isSinglePlayer,
+      CurrentTurnId = playerOne,
+      WinnerId = null,
       Board = Game.CreateEmptyBoard(),
     };
 
     db.Games.Add(game);
     await db.SaveChangesAsync();
 
-    return game;
+    return await db.Games
+      .Include(x => x.PlayerOne)
+      .Include(x => x.PlayerTwo)
+      .Include(g => g.CurrentTurn)
+      .Include(g => g.Winner)
+      .FirstAsync(g => g.GameId == game.GameId);
   }
 
-  internal async Task<List<AllGamesResponse>> ListAllGamesAsync()
+  internal async Task<GameResponse> RestartCurrentGameAsync(Guid gameId)
   {
-    var games = await db.Games.ToListAsync();
-    var response = games.Select(x => new AllGamesResponse
+    var game = await db.Games.FirstAsync(x => x.GameId == gameId);
+    var isSinglePlayer = game.IsSinglePlayer;
+
+    game.CurrentTurnId = game.PlayerOneId;
+    game.Winner = null;
+    game.WinnerId = null;
+    game.IsSinglePlayer = isSinglePlayer;
+    game.Board = Game.CreateEmptyBoard();
+    await db.SaveChangesAsync();
+
+    return new GameResponse
     {
-      GameId = x.GameId,
-    }).ToList();
-
-    return response;
-  }
-
-  internal async Task<Game> GetGameByIdAsync(Guid id)
-  {
-    var game = await db.Games.FirstAsync(x => x.GameId == id);
-    return game;
+      GameId = game.GameId,
+      CurrentTurn = game.CurrentTurnId,
+      Board = game.Board,
+      Winner = game.WinnerId
+    };
   }
 
   internal async Task<GameResponse> GameTurnAsync(Guid playerId, Guid gameId, int col)
@@ -60,7 +70,7 @@ public class GameServices
     var game = await db.Games.FirstOrDefaultAsync(x => x.GameId == gameId)
       ?? throw new NotFoundException($"Game with Id: {gameId} not found");
 
-    if (game.CurrentTurn != playerId)
+    if (game.CurrentTurnId != playerId)
       throw new InvalidOperationException("Not this player's turn");
 
     var board = game.Board;
@@ -81,45 +91,113 @@ public class GameServices
     var newBoard = CloneBoard(board);
     newBoard[row][col] = playerId.ToString();
     game.Board = newBoard;
-    game.CurrentTurn = (playerId == game.PlayerOne) ? game.PlayerTwo : game.PlayerOne;
+
+    if (CheckForWin(newBoard, playerId.ToString()))
+    {
+      game.WinnerId = playerId;
+    }
+    else
+    {
+      game.CurrentTurnId = (playerId == game.PlayerOneId) ? game.PlayerTwoId!.Value : game.PlayerOneId;
+    }
 
     await db.SaveChangesAsync();
 
     return new GameResponse
     {
       GameId = game.GameId,
-      CurrentTurn = game.CurrentTurn,
-      Board = game.Board
+      CurrentTurn = game.CurrentTurnId,
+      Board = game.Board,
+      Winner = game.WinnerId
     };
   }
 
-  internal async Task<GameResponse> RestartCurrentGameAsync(Guid gameId)
+  internal async Task<GameResponse> BotTurnAsync(Guid gameId)
   {
-    var game = await db.Games.FirstAsync(x => x.GameId == gameId);
+    var game = await db.Games.FirstOrDefaultAsync(x => x.GameId == gameId)
+        ?? throw new NotFoundException("Game not found");
 
-    game.Board = Game.CreateEmptyBoard();
+    if (!game.IsSinglePlayer || game.CurrentTurnId != game.PlayerTwoId)
+      throw new InvalidOperationException("Not bot's turn");
+
+    BotTurn(game);
+
     await db.SaveChangesAsync();
 
     return new GameResponse
     {
       GameId = game.GameId,
-      CurrentTurn = game.CurrentTurn,
+      CurrentTurn = game.CurrentTurnId,
       Board = game.Board
     };
   }
 
-  // public static string WinningCombinations(int row, int col)
-  // {
-  //   var directions = [
-  //     [0, 1], // right
-  //     [1, 0], // left
-  //     [1, 1], // diagonal right
-  //     [1, -1] // diagonal left
-  //   ];
+  private void BotTurn(Game game)
+  {
+    var botId = game.PlayerTwoId!.Value;
+    var newBoard = CloneBoard(game.Board);
 
-  //   foreach (var item in collection)
-  //   {
+    for (int col = 0; col < Game.Columns; col++)
+    {
+      for (int row = Game.Rows - 1; row >= 0; row--)
+      {
+        if (newBoard[row][col] == null)
+        {
+          newBoard[row][col] = botId.ToString();
+          game.Board = newBoard;
 
-  //   }
-  // }
+          if (CheckForWin(newBoard, botId.ToString()))
+          {
+            game.WinnerId = botId;
+          }
+          else
+          {
+            game.CurrentTurnId = game.PlayerOneId;
+          }
+
+          return;
+        }
+      }
+    }
+    throw new InvalidOperationException("Bot can't make a move");
+  }
+
+  public static bool CheckForWin(string?[][] board, string playerId)
+  {
+    int rows = board.Length;
+    int cols = board[0].Length;
+
+    bool HasFour(int rStep, int cStep)
+    {
+      for (int row = 0; row < rows; row++)
+      {
+        for (int col = 0; col < cols; col++)
+        {
+          int count = 0;
+          for (int i = 0; i < 4; i++)
+          {
+            int r = row + rStep * i;
+            int c = col + cStep * i;
+
+            if (r < 0 || r >= rows || c < 0 || c >= cols)
+              break;
+
+            if (board[r][c] == playerId)
+              count++;
+            else
+              break;
+          }
+
+          if (count == 4)
+            return true;
+        }
+      }
+      return false;
+    }
+
+    return HasFour(0, 1)
+        || HasFour(1, 0)
+        || HasFour(1, 1)
+        || HasFour(-1, 1);
+  }
 }

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ConnectFour.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class UpdateTables : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -176,10 +176,10 @@ namespace ConnectFour.Migrations
                 {
                     GameId = table.Column<Guid>(type: "TEXT", nullable: false),
                     PlayerOne = table.Column<Guid>(type: "TEXT", nullable: false),
-                    PlayerTwo = table.Column<Guid>(type: "TEXT", nullable: false),
+                    PlayerTwo = table.Column<Guid>(type: "TEXT", nullable: true),
                     CurrentTurn = table.Column<Guid>(type: "TEXT", nullable: false),
-                    BoardState = table.Column<string>(type: "TEXT", nullable: false),
-                    Winner = table.Column<Guid>(type: "TEXT", nullable: true)
+                    Winner = table.Column<Guid>(type: "TEXT", nullable: true),
+                    Board = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -235,6 +235,29 @@ namespace ConnectFour.Migrations
                         principalTable: "Players",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Rooms",
+                columns: table => new
+                {
+                    RoomId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    InviteLink = table.Column<string>(type: "TEXT", nullable: true),
+                    PlayerOne = table.Column<Guid>(type: "TEXT", nullable: false),
+                    PlayerTwo = table.Column<Guid>(type: "TEXT", nullable: true),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CreatedOnUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    GameId = table.Column<Guid>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Rooms", x => x.RoomId);
+                    table.ForeignKey(
+                        name: "FK_Rooms_Games_GameId",
+                        column: x => x.GameId,
+                        principalTable: "Games",
+                        principalColumn: "GameId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -303,6 +326,17 @@ namespace ConnectFour.Migrations
                 name: "IX_Moves_PlayerId",
                 table: "Moves",
                 column: "PlayerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Players_Username",
+                table: "Players",
+                column: "Username",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Rooms_GameId",
+                table: "Rooms",
+                column: "GameId");
         }
 
         /// <inheritdoc />
@@ -325,6 +359,9 @@ namespace ConnectFour.Migrations
 
             migrationBuilder.DropTable(
                 name: "Moves");
+
+            migrationBuilder.DropTable(
+                name: "Rooms");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

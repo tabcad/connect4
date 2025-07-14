@@ -10,12 +10,12 @@ namespace ConnectFour.Controllers;
 public class PlayerController : ControllerBase
 {
   private readonly AppDatabase db;
-  private readonly PlayerServices services;
+  private readonly PlayerServices service;
 
   public PlayerController(
-    PlayerServices services, AppDatabase db)
+    PlayerServices service, AppDatabase db)
   {
-    this.services = services;
+    this.service = service;
     this.db = db;
   }
 
@@ -32,7 +32,7 @@ public class PlayerController : ControllerBase
   [ProducesDefaultResponseType]
   public async Task<IActionResult> GetAccount([FromRoute] Guid id)
   {
-    var user = await services.GetPlayerByIdAsync(id);
+    var user = await service.GetPlayerByIdAsync(id);
 
     return Ok(new AccountResponse
     {
@@ -52,7 +52,7 @@ public class PlayerController : ControllerBase
   [ProducesDefaultResponseType]
   public async Task<IActionResult> GetAllPlayers()
   {
-    var list = await services.GetAllPlayersAsync();
+    var list = await service.GetAllPlayersAsync();
 
     return Ok(list);
   }
@@ -72,7 +72,7 @@ public class PlayerController : ControllerBase
       throw new ArgumentException("Username must be longer than 3 characters and less than 64");
     }
 
-    var (user, token) = await services.CreateAccountAsync(data.Username, data.Password);
+    var (user, token) = await service.CreateAccountAsync(data.Username, data.Password);
 
     return Ok(new LoginResponse
     {
@@ -92,7 +92,7 @@ public class PlayerController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
   public async Task<IActionResult> Login([FromBody] LoginContract data)
   {
-    var (user, token) = await services.LoginAsync(data.Username, data.Password);
+    var (user, token) = await service.LoginAsync(data.Username, data.Password);
 
     return Ok(new LoginResponse
     {
@@ -100,5 +100,14 @@ public class PlayerController : ControllerBase
       Username = user.Username,
       Id = user.Id
     });
+  }
+
+  [HttpGet("rooms/{id:Guid}")]
+  [ProducesResponseType(typeof(List<RoomListResponse>), StatusCodes.Status200OK)]
+  public async Task<IActionResult> ListUsersRooms([FromRoute] Guid id)
+  {
+    var list = await service.ListUsersRoomsAsync(id);
+
+    return Ok(list);
   }
 }
